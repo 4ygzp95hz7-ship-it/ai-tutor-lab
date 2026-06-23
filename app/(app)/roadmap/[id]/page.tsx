@@ -21,6 +21,7 @@ export default function RoadmapDetailPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [activeStageId, setActiveStageId] = useState<string | undefined>()
   const [updating, setUpdating] = useState<string | null>(null)
+  const [loadingSubModules, setLoadingSubModules] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/roadmaps/${params.id}`)
@@ -33,6 +34,28 @@ export default function RoadmapDetailPage() {
       .catch(() => toast.error('Failed to load roadmap'))
       .finally(() => setLoading(false))
   }, [params.id])
+
+  async function expandStage(stageId: string) {
+    if (expandedStage === stageId) { setExpandedStage(null); return }
+    setExpandedStage(stageId)
+
+    // Fetch sub-modules if not yet generated
+    const stage = roadmap?.stages.find(s => s.id === stageId)
+    if (!stage || stage.subModules.length > 0) return
+
+    setLoadingSubModules(stageId)
+    try {
+      const res = await fetch(`/api/stages/${stageId}/submodules`, { method: 'POST' })
+      const { subModules } = await res.json()
+      if (subModules) {
+        setRoadmap(prev => prev ? {
+          ...prev,
+          stages: prev.stages.map(s => s.id === stageId ? { ...s, subModules } : s),
+        } : prev)
+      }
+    } catch { /* silently fail — sub-modules are optional */ }
+    finally { setLoadingSubModules(null) }
+  }
 
   async function markComplete(stageId: string) {
     setUpdating(stageId)
@@ -87,7 +110,7 @@ export default function RoadmapDetailPage() {
           const isLocked = stage.status === 'not_started' && index > 0 && roadmap.stages[index - 1]?.status !== 'completed'
           return (
             <div key={stage.id} className={cn('bg-white border rounded-xl overflow-hidden transition-all', stage.status === 'completed' && 'border-green-200 bg-green-50/30', stage.status === 'in_progress' && 'border-blue-200', isLocked && 'opacity-60 border-gray-100')}>
-              <button className="w-full px-4 py-3.5 flex items-center gap-3 text-left" onClick={() => !isLocked && setExpandedStage(isExpanded ? null : stage.id)} disabled={isLocked}>
+              <button className="w-full px-4 py-3.5 flex items-center gap-3 text-left" onClick={() => !isLocked && expandStage(stage.id)} disabled={isLocked}>
                 <div className="flex-shrink-0">
                   {stage.status === 'completed' ? <CheckCircle size={20} className="text-green-500" />
                     : stage.status === 'in_progress' ? <div className="w-5 h-5 border-2 border-blue-500 rounded-full flex items-center justify-center"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full" /></div>
@@ -100,7 +123,9 @@ export default function RoadmapDetailPage() {
                     {stage.status === 'in_progress' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">In Progress</span>}
                   </div>
                   <p className="font-semibold text-gray-900 text-sm mt-0.5 truncate">{stage.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{stage.subModules?.length ?? 0} sub-modules</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {loadingSubModules === stage.id ? 'Loading sub-modules…' : stage.subModules?.length > 0 ? `${stage.subModules.length} sub-modules` : 'Click to generate sub-modules'}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={12} />{stage.estimatedHours}h</span>
@@ -110,6 +135,12 @@ export default function RoadmapDetailPage() {
 
               {isExpanded && !isLocked && (
                 <div className="px-4 pb-4 border-t border-gray-100">
+                  {loadingSubModules === stage.id && (
+                    <div className="flex items-center gap-2 text-sm text-blue-600 py-4">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      Generating sub-modules with AI…
+                    </div>
+                  )}
                   <p className="text-sm text-gray-600 mt-3 mb-3">{stage.description}</p>
 
                   {stage.objectives.length > 0 && (
