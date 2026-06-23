@@ -48,58 +48,51 @@ export async function generateRoadmap(
 ): Promise<GeneratedRoadmap> {
   const client = getClaudeClient()
 
-  const prompt = `You are an expert curriculum designer and master educator. Create a COMPLETE, UNCOMPROMISED learning roadmap for someone who wants to learn: "${topic}".
+  const prompt = `Create a learning roadmap outline for "${topic}" (${experienceLevel} level).
 
-Experience level: ${experienceLevel}
-
-Your job is to design a syllabus that covers EVERYTHING a person needs to truly master this topic. Do not restrict the number of modules or sub-modules. If the topic requires 5 modules, create 5. If it requires 18, create 18.
-
-Return a JSON object with this exact structure (no markdown, just raw JSON):
+Return ONLY this JSON, no markdown, no explanation:
 {
   "title": "string",
-  "description": "string - 2-3 sentence overview",
+  "description": "string (1 sentence)",
   "totalHours": number,
   "stages": [
     {
       "title": "string",
-      "description": "string",
-      "objectives": ["string"],
+      "description": "string (1 sentence, max 15 words)",
       "estimatedHours": number,
-      "subModules": [
-        {
-          "title": "string",
-          "description": "string",
-          "objectives": ["string", "string"],
-          "estimatedHours": number,
-          "resources": [
-            { "title": "string", "url": "https://...", "type": "article|video|docs|exercise" }
-          ]
-        }
-      ],
-      "resources": [
-        { "title": "string", "url": "https://...", "type": "article|video|docs|exercise" }
-      ]
+      "objectives": ["string", "string"],
+      "resources": [{"title": "string", "url": "https://...", "type": "docs"}],
+      "subModules": []
     }
   ]
 }
 
 Rules:
-- Create AS MANY modules as the topic genuinely requires — never cap at any arbitrary number
-- Break each complex module into 2-6 focused sub-modules
-- Progress naturally: fundamentals → core → intermediate → advanced → real-world application
-- Tailor depth to experience level: beginners need fundamentals; advanced learners skip basics
-- Each sub-module: 2-4 focused objectives, 2-3 real resources, 0.5-4 estimated hours
-- Return ONLY valid JSON, no markdown fences, no commentary`
+- 8-14 stages covering ${topic} completely (beginner → advanced)
+- NO sub-modules (leave subModules as empty array [])
+- Each stage: 2 objectives max, 1 resource, description under 15 words
+- Output ONLY complete valid JSON`
 
   const message = await client.messages.create({
-    model: SONNET,
-    max_tokens: 16000,
+    model: HAIKU,
+    max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim()
-  return JSON.parse(cleaned) as GeneratedRoadmap
+  // Strip markdown fences and find the JSON object
+  let cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/,'').trim()
+  // Extract just the JSON object if there's surrounding text
+  const jsonStart = cleaned.indexOf('{')
+  const jsonEnd = cleaned.lastIndexOf('}')
+  if (jsonStart !== -1 && jsonEnd !== -1) {
+    cleaned = cleaned.slice(jsonStart, jsonEnd + 1)
+  }
+  try {
+    return JSON.parse(cleaned) as GeneratedRoadmap
+  } catch {
+    throw new Error(`Claude returned invalid JSON. Response was: ${text.slice(0, 200)}`)
+  }
 }
 
 // ─── Doubt assistant system prompt ───────────────────────────────────────────

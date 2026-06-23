@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getTodayDate } from '@/lib/utils'
 
 const LIMITS = {
-  free: { doubt: 20, roadmap: 1, module: 10 },
+  free: { doubt: 100, roadmap: 20, module: 100 },
   pro:  { doubt: 200, roadmap: 999, module: 999 },
   team: { doubt: 500, roadmap: 999, module: 999 },
 }
@@ -12,9 +12,10 @@ type LimitType = 'doubt' | 'roadmap' | 'module'
 export async function checkAndIncrementUsage(
   userId: string,
   type: LimitType,
-  userRole: string = 'user'
+  delta: number = 1,
+  checkOnly: boolean = false
 ): Promise<{ allowed: boolean; remaining: number }> {
-  const tier = userRole === 'pro' ? 'pro' : userRole === 'team' ? 'team' : 'free'
+  const tier = 'free'
   const limit = LIMITS[tier][type]
   const date = getTodayDate()
 
@@ -28,17 +29,22 @@ export async function checkAndIncrementUsage(
     : type === 'roadmap' ? tracking.roadmapCount
     : 0
 
-  if (currentCount >= limit) {
+  if (delta > 0 && currentCount >= limit) {
     return { allowed: false, remaining: 0 }
   }
 
-  const update = type === 'doubt'
-    ? { doubtCount: { increment: 1 } }
-    : type === 'roadmap'
-    ? { roadmapCount: { increment: 1 } }
-    : {}
+  if (!checkOnly || delta < 0) {
+    const update = type === 'doubt'
+      ? { doubtCount: { increment: delta } }
+      : type === 'roadmap'
+      ? { roadmapCount: { increment: delta } }
+      : {}
 
-  await prisma.usageTracking.update({ where: { userId_date: { userId, date } }, data: update })
+    await prisma.usageTracking.update({
+      where: { userId_date: { userId, date } },
+      data: update,
+    })
+  }
 
-  return { allowed: true, remaining: limit - currentCount - 1 }
+  return { allowed: true, remaining: limit - currentCount - Math.max(delta, 0) }
 }
