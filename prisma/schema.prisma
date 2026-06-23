@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String?
+  email           String    @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?
+  role            String    @default("user")
+  experienceLevel String    @default("beginner")
+  onboardingStep  Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  roadmaps          Roadmap[]
+  submissions       Submission[]
+  projects          Project[]
+  chatMessages      ChatMessage[]
+  interviewSessions InterviewSession[]
+  aiFeedback        AiFeedback[]
+  streak            UserStreak?
+  referralCode      ReferralCode?
+  referralsMade     Referral[]         @relation("referrer")
+  referralReceived  Referral?          @relation("referred")
+  emailLogs         EmailLog[]
+  usageTracking     UsageTracking[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Roadmap {
+  id              String   @id @default(cuid())
+  userId          String
+  topic           String
+  title           String
+  description     String   @default("")
+  progressPct     Int      @default(0)
+  confidenceScore Int      @default(0)
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stages  Stage[]
+  project Project?
+}
+
+model Stage {
+  id             String   @id @default(cuid())
+  roadmapId      String
+  title          String
+  description    String
+  objectives     String   @default("[]")
+  subModules     String   @default("[]")
+  resources      String   @default("[]")
+  estimatedHours Int      @default(2)
+  status         String   @default("not_started")
+  orderIndex     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  roadmap      Roadmap       @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  exercises    Exercise[]
+  chatMessages ChatMessage[]
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  stageId     String
+  title       String
+  problem     String
+  starterCode String   @default("")
+  language    String   @default("python")
+  testCases   String   @default("[]")
+  hints       String   @default("[]")
+  difficulty  String   @default("medium")
+  createdAt   DateTime @default(now())
+
+  stage       Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+}
+
+model Submission {
+  id         String   @id @default(cuid())
+  exerciseId String
+  userId     String
+  code       String
+  result     String   @default("pending")
+  score      Int      @default(0)
+  feedback   String   @default("")
+  createdAt  DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  stageId   String?
+  sessionId String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage      Stage?      @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  aiFeedback AiFeedback?
+}
+
+model AiFeedback {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  userId    String
+  rating    Int
+  reason    String   @default("")
+  freetext  String   @default("")
+  feature   String   @default("doubt")
+  createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model InterviewSession {
+  id         String   @id @default(cuid())
+  userId     String
+  topic      String
+  difficulty String   @default("medium")
+  questions  String   @default("[]")
+  answers    String   @default("[]")
+  score      Int      @default(0)
+  weakAreas  String   @default("[]")
+  status     String   @default("in_progress")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id         String   @id @default(cuid())
+  roadmapId  String   @unique
+  userId     String
+  title      String
+  mode       String   @default("guided")
+  milestones String   @default("[]")
+  githubUrl  String   @default("")
+  aiReview   String   @default("")
+  status     String   @default("not_started")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserStreak {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  currentStreak    Int      @default(0)
+  longestStreak    Int      @default(0)
+  lastActivityDate String   @default("")
+  freezesRemaining Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ReferralCode {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrals Referral[]
+}
+
+model Referral {
+  id              String    @id @default(cuid())
+  referrerId      String
+  referredUserId  String    @unique
+  referralCodeId  String
+  status          String    @default("pending")
+  rewardGrantedAt DateTime?
+  createdAt       DateTime  @default(now())
+
+  referrer     User         @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred     User         @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referralCode ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+}
+
+model EmailLog {
+  id       String    @id @default(cuid())
+  userId   String
+  type     String
+  sentAt   DateTime  @default(now())
+  openedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UsageTracking {
+  id           String   @id @default(cuid())
+  userId       String
+  date         String
+  doubtCount   Int      @default(0)
+  tokenCount   Int      @default(0)
+  roadmapCount Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model PromptVersion {
+  id           String   @id @default(cuid())
+  feature      String
+  version      Int
+  prompt       String
+  deployedAt   DateTime @default(now())
+  thumbsUpRate Float    @default(0)
+  isActive     Boolean  @default(true)
+}
