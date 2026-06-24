@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard, Map, Code, MessageCircleQuestion,
-  Briefcase, UserCheck, User, LogOut, BookOpen, Flame,
+  Briefcase, UserCheck, User, LogOut, BookOpen, Flame, ShieldAlert,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatPanel } from '@/components/chat/ChatPanel'
@@ -24,6 +24,7 @@ const NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const isAdmin = (session?.user as { role?: string })?.role === 'admin'
   const [chatOpen, setChatOpen] = useState(false)
 
   return (
@@ -54,6 +55,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+
+        {isAdmin && (
+          <Link href="/admin" className={cn('flex items-center gap-2.5 px-3 py-2 mx-2 rounded-lg text-sm transition-colors mb-1', pathname.startsWith('/admin') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-500 hover:bg-gray-50')}>
+            <ShieldAlert size={15} /> Admin
+          </Link>
+        )}
 
         <div className="p-3 border-t border-gray-100">
           <div className="flex items-center gap-2 mb-2">

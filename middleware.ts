@@ -6,7 +6,7 @@ export default auth((req) => {
   const session = req.auth
 
   // Public routes — always allow
-  const publicRoutes = ['/', '/login', '/onboarding', '/ref']
+  const publicRoutes = ['/', '/login', '/onboarding', '/ref', '/admin']
   if (publicRoutes.some(r => pathname === r || pathname.startsWith(r + '/'))) {
     return NextResponse.next()
   }
