@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getTodayDate } from '@/lib/utils'
+import { sendModuleCompleteEmail } from '@/lib/email'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -33,6 +34,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     create: { userId: session.user.id, currentStreak: 1, longestStreak: 1, lastActivityDate: today },
     update: { lastActivityDate: today },
   })
+
+  // Send module complete email (async, non-blocking)
+  if (status === 'completed') {
+    const user = await prisma.user.findUnique({ where: { id: session.user.id as string }, select: { email: true, name: true } })
+    const nextStage = allStages.find(s => s.orderIndex === stage.orderIndex + 1)
+    if (user?.email && user?.name) {
+      sendModuleCompleteEmail(user.email, user.name, stage.title, nextStage?.title).catch(() => {})
+    }
+  }
 
   return NextResponse.json({ stage: updated, progressPct })
 }
