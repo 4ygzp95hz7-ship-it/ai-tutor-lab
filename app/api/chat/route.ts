@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
       try {
         const claudeStream = client.messages.stream({
           model: SONNET,
-          max_tokens: 1024,
-          temperature: 0.3,
+          max_tokens: 800,
+          temperature: 0.4,
           system: systemPrompt,
           messages: [
             ...ctx.recentMessages,
