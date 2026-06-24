@@ -139,7 +139,7 @@ export default function LoginPage() {
           {/* OAuth buttons */}
           <div className="space-y-3 mb-6">
             <button
-              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              onClick={() => signIn('google', { callbackUrl: '/dashboard' }, { prompt: 'select_account' })}
               className="w-full flex items-center gap-3 border border-gray-200 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.99]"
             >
               <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
@@ -167,6 +167,15 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-gray-100" />
             <span className="text-xs text-gray-400">Free forever</span>
             <div className="flex-1 h-px bg-gray-100" />
+          </div>
+
+          {/* Switch account helper */}
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
+            <p className="text-xs text-amber-700 font-medium mb-1">Signed in with the wrong account?</p>
+            <p className="text-xs text-amber-600 mb-2">Click Google above — it always shows the account picker so you can switch.</p>
+            <a href="/api/auth/signout?callbackUrl=/login" className="text-xs font-semibold text-amber-700 underline hover:text-amber-800">
+              Or sign out first →
+            </a>
           </div>
 
           {/* Feature pills */}
