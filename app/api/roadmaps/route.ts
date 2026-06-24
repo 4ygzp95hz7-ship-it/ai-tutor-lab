@@ -10,7 +10,7 @@ export async function GET() {
 
   const roadmaps = await prisma.roadmap.findMany({
     where: { userId: session.user.id },
-    include: { stages: { select: { id: true, status: true, orderIndex: true } } },
+    include: { stages: { select: { id: true, title: true, status: true, orderIndex: true, estimatedHours: true } } },
     orderBy: { createdAt: 'desc' },
   })
 
