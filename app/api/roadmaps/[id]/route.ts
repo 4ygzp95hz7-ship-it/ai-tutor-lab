@@ -28,6 +28,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       objectives: parseJSON<string[]>(s.objectives, []),
       subModules: parseJSON<object[]>(s.subModules, []),
       resources: parseJSON<object[]>(s.resources, []),
+      completedSubModules: parseJSON<number[]>(s.completedSubModules, []),
     })),
   }
 
