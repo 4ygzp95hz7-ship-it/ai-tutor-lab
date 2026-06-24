@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { CheckCircle, Circle, Lock, Clock, ChevronDown, ChevronRight, BookOpen, MessageSquare, ExternalLink, ArrowLeft } from 'lucide-react'
+import { CheckCircle, Circle, Lock, Clock, ChevronDown, ChevronRight, BookOpen, MessageSquare, ExternalLink, ArrowLeft, FileText } from 'lucide-react'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { cn, parseJSON } from '@/lib/utils'
 import { ChatPanel } from '@/components/chat/ChatPanel'
 import toast from 'react-hot-toast'
 
 interface SubModule { title: string; description: string; objectives: string[]; estimatedHours: number; resources: { title: string; url: string; type: string }[] }
-interface Stage { id: string; title: string; description: string; objectives: string[]; subModules: SubModule[]; resources: { title: string; url: string; type: string }[]; estimatedHours: number; status: string; orderIndex: number; exercises: { id: string; title: string; difficulty: string }[] }
+interface Stage { id: string; title: string; description: string; objectives: string[]; subModules: SubModule[]; resources: { title: string; url: string; type: string }[]; content?: string; estimatedHours: number; status: string; orderIndex: number; exercises: { id: string; title: string; difficulty: string }[] }
 interface Roadmap { id: string; title: string; description: string; topic: string; progressPct: number; confidenceScore: number; status: string; stages: Stage[] }
 
 export default function RoadmapDetailPage() {
@@ -22,6 +24,12 @@ export default function RoadmapDetailPage() {
   const [activeStageId, setActiveStageId] = useState<string | undefined>()
   const [updating, setUpdating] = useState<string | null>(null)
   const [loadingSubModules, setLoadingSubModules] = useState<string | null>(null)
+  const [loadingContent, setLoadingContent] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<Record<string, 'learn' | 'overview'>>({})
+
+  function getTab(stageId: string): 'learn' | 'overview' {
+    return activeTab[stageId] ?? 'learn'
+  }
 
   useEffect(() => {
     fetch(`/api/roadmaps/${params.id}`)
@@ -29,7 +37,34 @@ export default function RoadmapDetailPage() {
       .then(({ roadmap }) => {
         setRoadmap(roadmap)
         const inProgress = roadmap?.stages?.find((s: Stage) => s.status === 'in_progress')
-        if (inProgress) setExpandedStage(inProgress.id)
+        if (inProgress) {
+          setExpandedStage(inProgress.id)
+          // Auto-fetch content and sub-modules for the active module
+          if (!inProgress.content || inProgress.content.length < 50) {
+            setLoadingContent(inProgress.id)
+            fetch(`/api/stages/${inProgress.id}/content`, { method: 'POST' })
+              .then(r => r.json())
+              .then(({ content }) => {
+                if (content) setRoadmap(prev => prev ? {
+                  ...prev, stages: prev.stages.map((s: Stage) => s.id === inProgress.id ? { ...s, content } : s),
+                } : prev)
+              })
+              .catch(() => {})
+              .finally(() => setLoadingContent(null))
+          }
+          if (inProgress.subModules?.length === 0) {
+            setLoadingSubModules(inProgress.id)
+            fetch(`/api/stages/${inProgress.id}/submodules`, { method: 'POST' })
+              .then(r => r.json())
+              .then(({ subModules }) => {
+                if (subModules) setRoadmap(prev => prev ? {
+                  ...prev, stages: prev.stages.map((s: Stage) => s.id === inProgress.id ? { ...s, subModules } : s),
+                } : prev)
+              })
+              .catch(() => {})
+              .finally(() => setLoadingSubModules(null))
+          }
+        }
       })
       .catch(() => toast.error('Failed to load roadmap'))
       .finally(() => setLoading(false))
@@ -39,22 +74,38 @@ export default function RoadmapDetailPage() {
     if (expandedStage === stageId) { setExpandedStage(null); return }
     setExpandedStage(stageId)
 
-    // Fetch sub-modules if not yet generated
     const stage = roadmap?.stages.find(s => s.id === stageId)
-    if (!stage || stage.subModules.length > 0) return
+    if (!stage) return
 
-    setLoadingSubModules(stageId)
-    try {
-      const res = await fetch(`/api/stages/${stageId}/submodules`, { method: 'POST' })
-      const { subModules } = await res.json()
-      if (subModules) {
-        setRoadmap(prev => prev ? {
-          ...prev,
-          stages: prev.stages.map(s => s.id === stageId ? { ...s, subModules } : s),
-        } : prev)
-      }
-    } catch { /* silently fail — sub-modules are optional */ }
-    finally { setLoadingSubModules(null) }
+    // Fetch content and sub-modules in parallel if not yet generated
+    const fetchContent = !stage.content || stage.content.length < 50
+    const fetchSubModules = stage.subModules.length === 0
+
+    if (fetchContent) {
+      setLoadingContent(stageId)
+      fetch(`/api/stages/${stageId}/content`, { method: 'POST' })
+        .then(r => r.json())
+        .then(({ content }) => {
+          if (content) setRoadmap(prev => prev ? {
+            ...prev, stages: prev.stages.map(s => s.id === stageId ? { ...s, content } : s),
+          } : prev)
+        })
+        .catch(() => {})
+        .finally(() => setLoadingContent(null))
+    }
+
+    if (fetchSubModules) {
+      setLoadingSubModules(stageId)
+      fetch(`/api/stages/${stageId}/submodules`, { method: 'POST' })
+        .then(r => r.json())
+        .then(({ subModules }) => {
+          if (subModules) setRoadmap(prev => prev ? {
+            ...prev, stages: prev.stages.map(s => s.id === stageId ? { ...s, subModules } : s),
+          } : prev)
+        })
+        .catch(() => {})
+        .finally(() => setLoadingSubModules(null))
+    }
   }
 
   async function markComplete(stageId: string) {
@@ -134,11 +185,54 @@ export default function RoadmapDetailPage() {
               </button>
 
               {isExpanded && !isLocked && (
-                <div className="px-4 pb-4 border-t border-gray-100">
+                <div className="border-t border-gray-100">
+                  {/* Tabs */}
+                  <div className="flex border-b border-gray-100">
+                    <button
+                      onClick={() => setActiveTab(prev => ({ ...prev, [stage.id]: 'learn' }))}
+                      className={cn('flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors', getTab(stage.id) === 'learn' ? 'border-blue-500 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700')}
+                    >
+                      <FileText size={14} /> Lesson
+                    </button>
+                    <button
+                      onClick={() => setActiveTab(prev => ({ ...prev, [stage.id]: 'overview' }))}
+                      className={cn('flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors', getTab(stage.id) === 'overview' ? 'border-blue-500 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700')}
+                    >
+                      <BookOpen size={14} /> Overview
+                    </button>
+                  </div>
+
+                  <div className="px-4 pb-4">
+
+                  {/* LEARN TAB — Full lesson content */}
+                  {getTab(stage.id) === 'learn' && (
+                    <div className="py-4">
+                      {loadingContent === stage.id ? (
+                        <div className="flex flex-col items-center gap-3 py-10 text-gray-400">
+                          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                          <span className="text-sm text-blue-600">Generating your lesson with AI…</span>
+                          <span className="text-xs text-gray-400">This takes ~15 seconds and is cached after</span>
+                        </div>
+                      ) : stage.content && stage.content.length > 50 ? (
+                        <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-code:text-blue-700 prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-a:text-blue-600 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-li:my-1">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{stage.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 py-10 text-gray-400">
+                          <FileText size={32} className="text-gray-200" />
+                          <span className="text-sm">Lesson content will load when you open this module</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* OVERVIEW TAB — objectives, sub-modules, resources */}
+                  {getTab(stage.id) === 'overview' && (
+                    <div className="py-3">
                   {loadingSubModules === stage.id && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600 py-4">
+                    <div className="flex items-center gap-2 text-sm text-blue-600 py-3">
                       <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      Generating sub-modules with AI…
+                      Generating sub-modules…
                     </div>
                   )}
                   <p className="text-sm text-gray-600 mt-3 mb-3">{stage.description}</p>
@@ -204,6 +298,10 @@ export default function RoadmapDetailPage() {
                         {updating === stage.id ? 'Saving…' : 'Mark complete'}
                       </button>
                     )}
+                  </div>
+                    </div>
+                  )}
+
                   </div>
                 </div>
               )}
