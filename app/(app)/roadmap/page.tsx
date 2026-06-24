@@ -153,11 +153,11 @@ export default function RoadmapListPage() {
         </div>
       </div>
 
-      {/* RIGHT: preview pane */}
-      <div className="flex-1 overflow-y-auto">
+      {/* RIGHT: preview pane — full height, no artificial width cap */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-white">
         {!selected ? (
           <div className="flex h-full items-center justify-center text-gray-400">
-            <div className="text-center"><Sparkles size={32} className="mx-auto mb-3 text-gray-200" /><p className="text-sm">Select a roadmap</p></div>
+            <div className="text-center"><Sparkles size={32} className="mx-auto mb-3 text-gray-200" /><p className="text-sm">Select a roadmap to preview</p></div>
           </div>
         ) : (() => {
           const color = RING_COLORS[roadmaps.indexOf(selected) % RING_COLORS.length]
@@ -167,88 +167,96 @@ export default function RoadmapListPage() {
           const sortedStages = [...(selected.stages ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
 
           return (
-            <div className="max-w-lg mx-auto px-8 py-8">
-              {/* Roadmap header */}
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-3xl flex-shrink-0">
-                  {getEmoji(selected.topic)}
+            <>
+              {/* Fixed top section */}
+              <div className="flex-shrink-0 border-b border-gray-100 bg-white p-6">
+                {/* Header row */}
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-4xl flex-shrink-0">
+                    {getEmoji(selected.topic)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold text-gray-900 mb-1 leading-tight">{selected.title}</h2>
+                    <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{selected.description || `A comprehensive ${selected.topic} learning path.`}</p>
+                  </div>
+                  <ProgressRing pct={selected.progressPct} color={color} size={72} />
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-bold text-gray-900 mb-1">{selected.title}</h2>
-                  <p className="text-sm text-gray-500 line-clamp-2">{selected.description || `A comprehensive ${selected.topic} learning path.`}</p>
-                </div>
-              </div>
 
-              {/* Progress ring + stats */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-5 flex items-center gap-5">
-                <ProgressRing pct={selected.progressPct} color={color} size={64} />
-                <div className="flex-1 grid grid-cols-3 gap-3">
+                {/* Stats row */}
+                <div className="grid grid-cols-4 gap-3 mb-5">
                   {[
-                    { label: 'Complete', value: `${done}/${total}`, sub: 'modules' },
-                    { label: 'Status', value: selected.status, sub: timeAgo(selected.createdAt) },
+                    { label: 'Modules', value: `${done} / ${total}`, sub: 'complete' },
                     { label: 'Progress', value: `${selected.progressPct}%`, sub: 'overall' },
+                    { label: 'Status', value: selected.status, sub: timeAgo(selected.createdAt), capitalize: true },
+                    { label: 'Started', value: timeAgo(selected.createdAt), sub: selected.topic },
                   ].map((s, i) => (
-                    <div key={i} className="text-center bg-gray-50 rounded-xl p-3">
-                      <div className="text-sm font-bold text-gray-900 capitalize">{s.value}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
+                    <div key={i} className="bg-gray-50 rounded-xl p-3.5">
+                      <div className={`text-sm font-bold text-gray-900 mb-0.5 ${s.capitalize ? 'capitalize' : ''}`}>{s.value}</div>
+                      <div className="text-xs text-gray-400">{s.label}</div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* CTA buttons */}
-              <div className="flex gap-2 mb-6">
-                <Link href={`/roadmap/${selected.id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-                  <Play size={14} />
-                  {selected.status === 'active' ? 'Continue learning' : 'Open roadmap'}
-                </Link>
-                <button className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-sm px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
-                  {selected.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
-                  {selected.status === 'active' ? 'Pause' : 'Resume'}
-                </button>
-              </div>
-
-              {/* Current position */}
-              {inProgress && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-xs text-blue-600 font-medium">Currently studying</p>
-                    <p className="text-sm text-blue-800 font-semibold">{inProgress.title}</p>
-                  </div>
-                  <Link href={`/roadmap/${selected.id}`} className="text-xs text-blue-600 font-medium hover:underline whitespace-nowrap">
-                    Continue →
+                {/* CTA buttons */}
+                <div className="flex gap-2.5">
+                  <Link href={`/roadmap/${selected.id}`}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white text-sm font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors">
+                    <Play size={14} />
+                    {selected.status === 'active' ? 'Continue learning' : 'Open roadmap'}
                   </Link>
+                  <button className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-sm px-5 py-3 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                    {selected.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
+                    {selected.status === 'active' ? 'Pause' : 'Resume'}
+                  </button>
                 </div>
-              )}
 
-              {/* Module list */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Modules ({total})</h3>
-                  <span className="text-xs text-gray-400">{done} complete</span>
-                </div>
-                <div className="space-y-1.5">
-                  {sortedStages.map((stage, si) => {
-                    const isDone = stage.status === 'completed'
-                    const isActive = stage.status === 'in_progress'
-                    return (
-                      <div key={stage.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? 'opacity-60' : isActive ? 'bg-blue-50/50' : ''}`}>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-green-500 border-green-500' : isActive ? 'border-blue-500' : 'border-gray-200'}`}>
-                          {isDone && <CheckCircle size={10} className="text-white" />}
-                          {isActive && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                        </div>
-                        <span className={`text-sm flex-1 ${isDone ? 'line-through text-gray-400' : isActive ? 'text-blue-700 font-medium' : 'text-gray-600'}`}>
-                          {stage.title}
-                        </span>
-                        {isActive && <span className="text-xs text-blue-500 font-medium">In progress</span>}
-                        {si >= done && !isDone && !isActive && <Clock size={11} className="text-gray-300" />}
-                      </div>
-                    )
-                  })}
+                {/* Current position banner */}
+                {inProgress && (
+                  <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs text-blue-600 font-medium">Currently studying</p>
+                      <p className="text-sm text-blue-800 font-semibold">{inProgress.title}</p>
+                    </div>
+                    <Link href={`/roadmap/${selected.id}`} className="text-xs text-blue-600 font-semibold hover:underline whitespace-nowrap">
+                      Continue →
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Scrollable module list fills remaining height */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="px-6 py-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">All modules ({total})</h3>
+                    <span className="text-xs text-gray-400">{done} of {total} complete</span>
+                  </div>
+                  <div className="space-y-1">
+                    {sortedStages.map((stage, si) => {
+                      const isDone = stage.status === 'completed'
+                      const isActive = stage.status === 'in_progress'
+                      return (
+                        <Link key={stage.id} href={`/roadmap/${selected.id}`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors cursor-pointer ${isDone ? 'opacity-55 hover:opacity-80' : isActive ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-green-500 border-green-500' : isActive ? 'border-blue-500 bg-white' : 'border-gray-200 bg-white'}`}>
+                            {isDone && <CheckCircle size={12} className="text-white" />}
+                            {isActive && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+                            {!isDone && !isActive && <span className="text-xs text-gray-300 font-medium">{si + 1}</span>}
+                          </div>
+                          <span className={`text-sm flex-1 ${isDone ? 'line-through text-gray-400' : isActive ? 'text-blue-700 font-semibold' : 'text-gray-700'}`}>
+                            {stage.title}
+                          </span>
+                          {isActive && <span className="text-xs bg-blue-100 text-blue-600 font-semibold px-2 py-0.5 rounded-full">In progress</span>}
+                          {isDone && <CheckCircle size={13} className="text-green-500 flex-shrink-0" />}
+                          {!isDone && !isActive && <Clock size={12} className="text-gray-300 flex-shrink-0" />}
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           )
         })()}
       </div>
