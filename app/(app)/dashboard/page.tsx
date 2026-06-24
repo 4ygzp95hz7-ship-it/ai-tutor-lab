@@ -47,15 +47,17 @@ export default function DashboardPage() {
   const { data: session } = useSession()
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([])
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/roadmaps').then(r => r.json()),
-      fetch('/api/streak').then(r => r.json()),
-    ]).then(([rmData, stData]) => {
+      fetch('/api/stats').then(r => r.json()),
+    ]).then(([rmData, statsData]) => {
       setRoadmaps(rmData.roadmaps ?? [])
-      setStreak(stData.streak ?? { currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
+      setStreak(statsData.streak ?? { currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
+      setConfidenceScore(statsData.hasActivity ? statsData.confidenceScore : null)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -67,7 +69,7 @@ export default function DashboardPage() {
     { label: 'Active roadmaps', value: loading ? '—' : String(activeCount), sub: `${roadmaps.length} total`, icon: TrendingUp, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
     { label: 'Modules studied', value: loading ? '—' : String(totalModules), sub: 'All time', icon: BookOpen, iconBg: 'bg-green-50', iconColor: 'text-green-600' },
     { label: 'Current streak', value: loading ? '—' : String(streak.currentStreak), sub: `Longest: ${streak.longestStreak} days`, icon: Flame, iconBg: 'bg-amber-50', iconColor: 'text-orange-500' },
-    { label: 'Confidence score', value: loading ? '—' : '78', sub: '↑ 6 pts this week', icon: TrendingUp, iconBg: 'bg-purple-50', iconColor: 'text-purple-600' },
+    { label: 'Confidence score', value: loading ? '—' : confidenceScore !== null ? String(confidenceScore) : '—', sub: confidenceScore !== null ? 'Based on your progress' : 'Complete modules to unlock', icon: TrendingUp, iconBg: 'bg-purple-50', iconColor: 'text-purple-600' },
   ]
 
   return (

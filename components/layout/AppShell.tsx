@@ -27,11 +27,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const [chatOpen, setChatOpen] = useState(false)
   const [streak, setStreak] = useState(0)
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
   const isAdmin = (session?.user as { role?: string })?.role === 'admin'
 
   useEffect(() => {
-    fetch('/api/streak').then(r => r.json()).then(({ streak }) => {
+    fetch('/api/stats').then(r => r.json()).then(({ streak, confidenceScore, hasActivity }) => {
       setStreak(streak?.currentStreak ?? 0)
+      setConfidenceScore(hasActivity ? confidenceScore : null)
     }).catch(() => {})
   }, [])
 
@@ -118,10 +120,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
 
             {/* Confidence */}
-            <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-blue-100">
-              <Star size={12} />
-              78/100
-            </div>
+            {confidenceScore !== null && (
+              <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-blue-100">
+                <Star size={12} />
+                {confidenceScore}/100
+              </div>
+            )}
 
             {/* AI Tutor button */}
             <button onClick={() => setChatOpen(true)}
