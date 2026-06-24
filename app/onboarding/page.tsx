@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { BookOpen, Sparkles, Loader2, ChevronRight, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -17,6 +18,7 @@ type Step = 1 | 2 | 3 | 4 | 5
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { update } = useSession()
   const [step, setStep] = useState<Step>(1)
   const [topic, setTopic] = useState('')
   const [level, setLevel] = useState('beginner')
@@ -79,6 +81,8 @@ export default function OnboardingPage() {
 
   async function startLearning() {
     await fetch('/api/onboarding', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ step: 5 }) })
+    // Refresh the JWT session so middleware sees updated onboardingStep
+    await update({ onboardingStep: 5 })
     router.push(roadmapId ? `/roadmap/${roadmapId}` : '/dashboard')
   }
 

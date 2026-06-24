@@ -22,11 +22,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
         token.role = (user as { role?: string }).role ?? 'user'
         token.onboardingStep = (user as { onboardingStep?: number }).onboardingStep ?? 0
+      }
+      // Allow client-side update() to refresh onboardingStep in the JWT
+      if (trigger === 'update' && session?.onboardingStep !== undefined) {
+        token.onboardingStep = session.onboardingStep
       }
       return token
     },
