@@ -20,6 +20,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Fix: Tailwind v4 resets form element color — make all inputs/selects/textareas explicitly dark */
+input,
+textarea,
+select,
+option {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  color: #0f172a;
+  outline: none;
+}
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
