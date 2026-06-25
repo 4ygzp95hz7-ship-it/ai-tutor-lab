@@ -50,6 +50,11 @@ export default function RoadmapPage() {
   const [loadingLesson, setLoadingLesson] = useState(false)
   const [loadingSubs, setLoadingSubs] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
+  const [connections, setConnections] = useState<{
+    prev: { id: string; title: string; status: string } | null
+    next: { id: string; title: string; status: string } | null
+    conceptual: { id: string; title: string; status: string }[]
+  } | null>(null)
 
   // Recall quiz state
   const [recallMode, setRecallMode] = useState<'idle' | 'loading' | 'answering' | 'result'>('idle')
@@ -130,6 +135,8 @@ export default function RoadmapPage() {
   async function selectStage(stage: Stage) {
     const loaded = await loadSubModules(stage)
     setActiveStage(loaded)
+    setConnections(null)
+    loadConnections(stage.id)
     const firstUndone = loaded.subModules?.findIndex((_sm: SubModule, i: number) => !(loaded.completedSubModules ?? []).includes(i)) ?? 0
     const idx = firstUndone === -1 ? 0 : firstUndone
     setActiveSubIdx(idx)
@@ -141,6 +148,14 @@ export default function RoadmapPage() {
     setActiveSubIdx(idx)
     const sub = activeStage.subModules?.[idx]
     if (sub) loadLesson(activeStage.id, idx, sub)
+  }
+
+  async function loadConnections(stageId: string) {
+    try {
+      const res = await fetch(`/api/stages/${stageId}/connections`)
+      const data = await res.json()
+      setConnections(data)
+    } catch {}
   }
 
   async function startRecall() {
@@ -467,6 +482,36 @@ export default function RoadmapPage() {
                 </div>
               )}
             </div>
+
+            {/* Concept connection map */}
+            {connections && (connections.prev || connections.next || connections.conceptual.length > 0) && (
+              <div className="mx-8 mb-5 bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Concept connections</p>
+                <div className="flex flex-wrap gap-2">
+                  {connections.prev && (
+                    <div className="flex items-center gap-1.5 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2">
+                      <span className="text-gray-400">←</span>
+                      <span className="text-gray-400 font-medium">Prerequisite:</span>
+                      <span className={cn('font-medium', connections.prev.status === 'completed' ? 'text-green-600' : 'text-gray-600')}>{connections.prev.title}</span>
+                    </div>
+                  )}
+                  {connections.conceptual.map((c, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-xs bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                      <span className="text-blue-400">↔</span>
+                      <span className="text-blue-500 font-medium">Related:</span>
+                      <span className="text-blue-700 font-medium">{c.title}</span>
+                    </div>
+                  ))}
+                  {connections.next && (
+                    <div className="flex items-center gap-1.5 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2">
+                      <span className="text-gray-600 font-medium">Leads to:</span>
+                      <span className={cn('font-medium', connections.next.status === 'completed' ? 'text-green-600' : 'text-gray-700')}>{connections.next.title}</span>
+                      <span className="text-gray-400">→</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ── RETENTION ZONE ── */}
             <div className="border-t border-gray-100 flex-shrink-0 bg-white">

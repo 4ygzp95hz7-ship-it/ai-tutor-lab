@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
   const [reviewDue, setReviewDue] = useState<{ id: string; subModuleTitle: string; roadmapTopic: string; stage: { id: string; roadmapId: string } }[]>([])
+  const [weakSpots, setWeakSpots] = useState<{ stageId: string; title: string; topic: string; roadmapId: string; weaknessScore: number }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,11 +57,13 @@ export default function DashboardPage() {
       fetch('/api/roadmaps').then(r => r.json()),
       fetch('/api/stats').then(r => r.json()),
       fetch('/api/review').then(r => r.json()),
-    ]).then(([rmData, statsData, reviewData]) => {
+      fetch('/api/weakspots').then(r => r.json()),
+    ]).then(([rmData, statsData, reviewData, wsData]) => {
       setRoadmaps(rmData.roadmaps ?? [])
       setStreak(statsData.streak ?? { currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
       setConfidenceScore(statsData.hasActivity ? statsData.confidenceScore : null)
       setReviewDue(reviewData.due ?? [])
+      setWeakSpots(wsData.weakSpots ?? [])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -202,6 +205,32 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-400">{item.roadmapTopic}</p>
                     </div>
                     <span className="text-xs text-blue-600 font-medium flex-shrink-0">Review →</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Weak spots */}
+        {weakSpots.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Brain size={15} className="text-amber-500" />
+              <h2 className="text-sm font-semibold text-gray-800">Concepts to strengthen</h2>
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+              <p className="text-xs text-amber-700 mb-3">These topics show signs of struggle — low recall scores, many doubts, or low exercise scores.</p>
+              <div className="space-y-2">
+                {weakSpots.slice(0, 3).map((ws, i) => (
+                  <Link key={i} href={`/roadmap/${ws.roadmapId}`}
+                    className="flex items-center gap-3 bg-white border border-amber-100 rounded-lg px-3 py-2.5 hover:border-amber-300 transition-colors">
+                    <Brain size={13} className="text-amber-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{ws.title}</p>
+                      <p className="text-xs text-gray-400">{ws.topic}</p>
+                    </div>
+                    <span className="text-xs text-amber-600 font-medium flex-shrink-0">Review →</span>
                   </Link>
                 ))}
               </div>

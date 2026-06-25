@@ -164,29 +164,44 @@ export interface GeneratedExercise {
 export async function generateExercise(
   stageTopic: string,
   moduleTitle: string,
-  level: string
+  level: string,
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+  industryDomain: string = ''
 ): Promise<GeneratedExercise> {
   const client = getClaudeClient()
+
+  const industryContext = industryDomain
+    ? `Frame the problem in a ${industryDomain} context — use examples, data, and scenarios from that industry.`
+    : ''
+
+  const difficultyGuide = {
+    easy: 'Simple, well-defined problem. Minimal edge cases. Clear expected output. Achievable in 10-15 minutes.',
+    medium: 'Requires combining 2-3 concepts. Some edge cases to handle. Achievable in 20-30 minutes.',
+    hard: 'Complex problem with multiple constraints. Requires efficient solution. Edge cases matter. 30-45 minutes.',
+  }[difficulty]
 
   const message = await client.messages.create({
     model: HAIKU,
     max_tokens: 2048,
     messages: [{
       role: 'user',
-      content: `Generate a coding exercise for a student learning "${stageTopic}" on the module "${moduleTitle}". Student level: ${level}.
+      content: `Generate a ${difficulty} coding exercise for a student learning "${stageTopic}" on the module "${moduleTitle}". Student level: ${level}.
+
+Difficulty guidance: ${difficultyGuide}
+${industryContext}
 
 Return JSON only:
 {
   "title": "string",
-  "problem": "string - clear problem statement with examples",
+  "problem": "string - clear problem statement with concrete examples and expected input/output",
   "starterCode": "string - helpful starter code scaffold",
   "language": "python|javascript|typescript",
   "testCases": [{ "input": "string", "expectedOutput": "string", "description": "string" }],
-  "hints": ["string", "string", "string"],
-  "difficulty": "easy|medium|hard"
+  "hints": ["string (general direction)", "string (more specific)", "string (almost a solution)"],
+  "difficulty": "${difficulty}"
 }
 
-Make it practical, educational, and achievable in 20-30 minutes. Return ONLY valid JSON.`,
+Return ONLY valid JSON.`,
     }],
   })
 

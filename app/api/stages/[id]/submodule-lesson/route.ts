@@ -39,6 +39,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ content: sub.content })
   }
 
+  // Get user's industry domain for personalised examples
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id as string },
+    select: { industryDomain: true },
+  })
+  const industry = user?.industryDomain || ''
+  const industryLine = industry
+    ? `Use examples from the ${industry} industry when explaining concepts — make it concrete and relevant to their world.`
+    : 'Use clear real-world analogies and practical examples.'
+
   const client = getClaudeClient()
   const prompt = `You are an expert tutor teaching "${stage.roadmap.topic}". Write a focused, practical lesson for this specific sub-module:
 
@@ -48,7 +58,9 @@ Description: ${sub.description}
 Learning objectives:
 ${sub.objectives.map((o, i) => `${i + 1}. ${o}`).join('\n')}
 
-Write a complete lesson that covers exactly this sub-module — not the whole module. Include:
+${industryLine}
+
+Write a complete lesson covering exactly this sub-module. Include:
 1. **Introduction** — what is this and why it matters (2-3 sentences)
 2. **Core Concept** — clear explanation with a real-world analogy
 3. **Code Example** — practical code with brief explanation (use \`\`\`language blocks)

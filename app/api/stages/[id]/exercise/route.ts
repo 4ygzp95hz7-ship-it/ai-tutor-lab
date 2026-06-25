@@ -8,26 +8,56 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
+  const userId = session.user.id as string
 
   const stage = await prisma.stage.findFirst({
     where: { id },
     include: {
       roadmap: { select: { topic: true, userId: true } },
-      exercises: { take: 1, orderBy: { createdAt: 'desc' } },
+      exercises: {
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        include: { submissions: { where: { userId }, orderBy: { createdAt: 'desc' }, take: 1, select: { score: true } } },
+      },
     },
   })
 
-  if (!stage || stage.roadmap.userId !== session.user.id) {
+  if (!stage || stage.roadmap.userId !== userId) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // Return cached exercise if already generated
-  if (stage.exercises.length > 0) {
-    return NextResponse.json({ exercise: stage.exercises[0] })
+  // Return most recent cached exercise if exists and hasn't been submitted yet
+  const latestExercise = stage.exercises[0]
+  if (latestExercise && latestExercise.submissions.length === 0) {
+    return NextResponse.json({ exercise: latestExercise })
   }
 
-  // Generate a new exercise
-  const generated = await generateExercise(stage.roadmap.topic, stage.title, 'beginner')
+  // Difficulty auto-scaling: look at recent submission scores
+  const recentScores = stage.exercises
+    .flatMap(ex => ex.submissions.map(s => s.score))
+    .filter(s => s !== null)
+
+  let difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+  if (recentScores.length >= 2) {
+    const avg = recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+    if (avg >= 85) difficulty = 'hard'      // Consistently excellent → push harder
+    else if (avg < 60) difficulty = 'easy'  // Struggling → step back
+    else difficulty = 'medium'
+  }
+
+  // Get user's experience level and industry domain for personalisation
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { experienceLevel: true, industryDomain: true },
+  })
+
+  const generated = await generateExercise(
+    stage.roadmap.topic,
+    stage.title,
+    user?.experienceLevel ?? 'beginner',
+    difficulty,
+    user?.industryDomain ?? ''
+  )
 
   const exercise = await prisma.exercise.create({
     data: {
@@ -42,5 +72,5 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     },
   })
 
-  return NextResponse.json({ exercise })
+  return NextResponse.json({ exercise, difficulty, adaptedFor: user?.industryDomain || null })
 }
