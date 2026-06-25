@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
   const [reviewDue, setReviewDue] = useState<{ id: string; subModuleTitle: string; roadmapTopic: string; stage: { id: string; roadmapId: string } }[]>([])
   const [weakSpots, setWeakSpots] = useState<{ stageId: string; title: string; topic: string; roadmapId: string; weaknessScore: number }[]>([])
+  const [dailyGoal, setDailyGoal] = useState<{ goal: number; studiedToday: number; pct: number; complete: boolean; reviewDueCount: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -58,12 +59,14 @@ export default function DashboardPage() {
       fetch('/api/stats').then(r => r.json()),
       fetch('/api/review').then(r => r.json()),
       fetch('/api/weakspots').then(r => r.json()),
-    ]).then(([rmData, statsData, reviewData, wsData]) => {
+      fetch('/api/goals').then(r => r.json()),
+    ]).then(([rmData, statsData, reviewData, wsData, goalData]) => {
       setRoadmaps(rmData.roadmaps ?? [])
       setStreak(statsData.streak ?? { currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
       setConfidenceScore(statsData.hasActivity ? statsData.confidenceScore : null)
       setReviewDue(reviewData.due ?? [])
       setWeakSpots(wsData.weakSpots ?? [])
+      setDailyGoal(goalData)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -182,6 +185,38 @@ export default function DashboardPage() {
               <Plus size={18} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
               <span className="text-sm text-gray-400 group-hover:text-blue-600 transition-colors font-medium">New roadmap</span>
             </Link>
+          </div>
+        )}
+
+        {/* Daily goal ring */}
+        {dailyGoal && (roadmaps.length > 0) && (
+          <div className={`mb-6 border rounded-xl p-4 flex items-center gap-4 ${dailyGoal.complete ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100'}`}>
+            <div className="relative flex-shrink-0">
+              <svg width="56" height="56" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="28" cy="28" r="22" fill="none" stroke="#f1f5f9" strokeWidth="4" />
+                <circle cx="28" cy="28" r="22" fill="none"
+                  stroke={dailyGoal.complete ? '#16a34a' : '#2563eb'} strokeWidth="4"
+                  strokeDasharray={138.2} strokeDashoffset={138.2 - (dailyGoal.pct / 100) * 138.2}
+                  strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease' }} />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-xs font-bold ${dailyGoal.complete ? 'text-green-700' : 'text-blue-600'}`}>{dailyGoal.pct}%</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <p className={`text-sm font-semibold ${dailyGoal.complete ? 'text-green-800' : 'text-gray-900'}`}>
+                {dailyGoal.complete ? '🎉 Daily goal complete!' : 'Today\'s learning goal'}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {dailyGoal.studiedToday} of {dailyGoal.goal} sub-modules studied today
+                {dailyGoal.reviewDueCount > 0 && ` · ${dailyGoal.reviewDueCount} review${dailyGoal.reviewDueCount > 1 ? 's' : ''} due`}
+              </p>
+            </div>
+            {!dailyGoal.complete && (
+              <Link href="/roadmap" className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex-shrink-0">
+                Continue →
+              </Link>
+            )}
           </div>
         )}
 

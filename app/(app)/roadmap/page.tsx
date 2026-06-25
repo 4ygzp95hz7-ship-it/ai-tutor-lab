@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Clock, CheckCircle, ChevronRight, Sparkles, Trash2, Play, Pause } from 'lucide-react'
+import { Plus, Clock, CheckCircle, ChevronRight, Sparkles, Play, Pause, Award } from 'lucide-react'
 
 interface Stage { id: string; status: string; title: string; orderIndex: number }
 interface Roadmap {
@@ -208,6 +208,12 @@ export default function RoadmapListPage() {
                     {selected.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
                     {selected.status === 'active' ? 'Pause' : 'Resume'}
                   </button>
+                  {selected.progressPct >= 80 && (
+                    <Link href={`/certificate/${selected.id}`}
+                      className="flex items-center gap-1.5 border border-amber-300 text-amber-700 bg-amber-50 text-sm px-4 py-3 rounded-xl hover:bg-amber-100 transition-colors font-semibold">
+                      <Award size={14} />Certificate
+                    </Link>
+                  )}
                 </div>
 
                 {/* Current position banner */}
