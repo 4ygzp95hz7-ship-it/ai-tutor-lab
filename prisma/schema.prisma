@@ -31,6 +31,8 @@ model User {
   aiFeedback        AiFeedback[]
   streak            UserStreak?
   referralCode      ReferralCode?
+  recallAttempts    RecallAttempt[]
+  spacedRepetitions SpacedRepetition[]
   referralsMade     Referral[]         @relation("referrer")
   referralReceived  Referral?          @relation("referred")
   emailLogs         EmailLog[]
@@ -104,9 +106,11 @@ model Stage {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  roadmap      Roadmap       @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
-  exercises    Exercise[]
-  chatMessages ChatMessage[]
+  roadmap          Roadmap            @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  exercises        Exercise[]
+  chatMessages     ChatMessage[]
+  recallAttempts   RecallAttempt[]
+  spacedRepetitions SpacedRepetition[]
 }
 
 model Exercise {
@@ -268,4 +272,40 @@ model PromptVersion {
   deployedAt   DateTime @default(now())
   thumbsUpRate Float    @default(0)
   isActive     Boolean  @default(true)
+}
+
+model RecallAttempt {
+  id             String   @id @default(cuid())
+  userId         String
+  stageId        String
+  subModuleIndex Int
+  questions      String   @default("[]")
+  userAnswers    String   @default("[]")
+  score          Int      @default(0)
+  passed         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+}
+
+model SpacedRepetition {
+  id             String   @id @default(cuid())
+  userId         String
+  stageId        String
+  subModuleTitle String   @default("")
+  roadmapTopic   String   @default("")
+  subModuleIndex Int
+  nextReviewDate DateTime
+  intervalDays   Int      @default(1)
+  repetitions    Int      @default(0)
+  easeFactor     Float    @default(2.5)
+  lastScore      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stageId, subModuleIndex])
 }

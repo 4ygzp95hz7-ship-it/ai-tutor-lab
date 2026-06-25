@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Plus, Flame, Clock, TrendingUp, BookOpen, ChevronRight, Code, MessageCircleQuestion, Sparkles } from 'lucide-react'
+import { Plus, Flame, Clock, TrendingUp, BookOpen, ChevronRight, Code, MessageCircleQuestion, Sparkles, Brain, RefreshCw } from 'lucide-react'
 
 interface Stage { id: string; status: string }
 interface Roadmap { id: string; topic: string; title: string; progressPct: number; status: string; stages: Stage[]; createdAt: string }
@@ -48,16 +48,19 @@ export default function DashboardPage() {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([])
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null)
+  const [reviewDue, setReviewDue] = useState<{ id: string; subModuleTitle: string; roadmapTopic: string; stage: { id: string; roadmapId: string } }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/roadmaps').then(r => r.json()),
       fetch('/api/stats').then(r => r.json()),
-    ]).then(([rmData, statsData]) => {
+      fetch('/api/review').then(r => r.json()),
+    ]).then(([rmData, statsData, reviewData]) => {
       setRoadmaps(rmData.roadmaps ?? [])
       setStreak(statsData.streak ?? { currentStreak: 0, longestStreak: 0, lastActivityDate: '' })
       setConfidenceScore(statsData.hasActivity ? statsData.confidenceScore : null)
+      setReviewDue(reviewData.due ?? [])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -176,6 +179,33 @@ export default function DashboardPage() {
               <Plus size={18} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
               <span className="text-sm text-gray-400 group-hover:text-blue-600 transition-colors font-medium">New roadmap</span>
             </Link>
+          </div>
+        )}
+
+        {/* Spaced repetition — due for review */}
+        {reviewDue.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Brain size={15} className="text-blue-600" />
+              <h2 className="text-sm font-semibold text-gray-800">Due for review</h2>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">{reviewDue.length}</span>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+              <p className="text-xs text-blue-600 mb-3">Spaced repetition — these sub-modules are scheduled for review today to lock in long-term retention.</p>
+              <div className="space-y-2">
+                {reviewDue.slice(0, 4).map((item, i) => (
+                  <Link key={i} href={`/roadmap/${item.stage.roadmapId}`}
+                    className="flex items-center gap-3 bg-white border border-blue-100 rounded-lg px-3 py-2.5 hover:border-blue-300 transition-colors">
+                    <RefreshCw size={13} className="text-blue-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{item.subModuleTitle}</p>
+                      <p className="text-xs text-gray-400">{item.roadmapTopic}</p>
+                    </div>
+                    <span className="text-xs text-blue-600 font-medium flex-shrink-0">Review →</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
