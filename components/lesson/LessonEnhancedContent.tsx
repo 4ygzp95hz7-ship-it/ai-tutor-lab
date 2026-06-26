@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Play, ExternalLink, Code2, AlertCircle } from 'lucide-react'
+import { Play, ExternalLink, Code2, AlertCircle, Copy, CheckCheck } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 // Extract YouTube video ID from any YouTube URL
 function extractYouTubeId(url: string): string | null {
@@ -118,40 +119,42 @@ function YouTubeSearchButton({ query, title }: { query: string; title?: string }
   )
 }
 
-// Live code playground button
+// Live code playground button — copies code + opens the right playground
 function PlaygroundButton({ code, language }: { code: string; language: string }) {
+  const [copied, setCopied] = useState(false)
+
   function openPlayground() {
     const lang = language.toLowerCase()
-    if (lang === 'python') {
-      const encoded = encodeURIComponent(code)
-      window.open(`https://repl.it/languages/python3?code=${encoded}`, '_blank')
-    } else {
-      // StackBlitz for JS/TS
-      const files = {
-        'index.js': code,
-        'package.json': JSON.stringify({ name: 'playground', type: 'module' }, null, 2)
-      }
-      const data = { files, template: 'node' }
-      const form = document.createElement('form')
-      form.method = 'POST'
-      form.action = 'https://stackblitz.com/run?file=index.js'
-      form.target = '_blank'
-      const input = document.createElement('input')
-      input.type = 'hidden'
-      input.name = 'project[files][index.js]'
-      input.value = code
-      form.appendChild(input)
-      document.body.appendChild(form)
-      form.submit()
-      document.body.removeChild(form)
+
+    // Always copy to clipboard first
+    navigator.clipboard.writeText(code).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 3000)
+
+    // Open the right playground for the language
+    const urls: Record<string, string> = {
+      python: 'https://www.online-python.com/',
+      py:     'https://www.online-python.com/',
+      javascript: 'https://jsfiddle.net/',
+      js:         'https://jsfiddle.net/',
+      typescript: 'https://www.typescriptlang.org/play',
+      ts:         'https://www.typescriptlang.org/play',
+      sql:        'https://www.db-fiddle.com/',
+      html:       'https://codepen.io/pen/',
+      css:        'https://codepen.io/pen/',
     }
+    const url = urls[lang] ?? 'https://replit.com/new'
+    window.open(url, '_blank')
+
+    toast.success('Code copied! Paste with Ctrl+V (or Cmd+V) in the playground.', { duration: 4000 })
   }
 
   return (
     <button onClick={openPlayground}
-      className="inline-flex items-center gap-1.5 text-xs text-green-700 bg-green-50 border border-green-100 px-2.5 py-1 rounded-md hover:bg-green-100 transition-colors font-medium ml-auto">
-      <Code2 size={12} />
-      Run in playground
+      className="inline-flex items-center gap-1.5 text-xs font-medium ml-auto transition-colors"
+      style={{ color: copied ? '#16a34a' : '#0f6e56', background: copied ? '#f0fdf4' : '#e1f5ee', border: '1px solid', borderColor: copied ? '#bbf7d0' : '#9fe1cb', padding: '3px 10px', borderRadius: '6px' }}>
+      {copied ? <CheckCheck size={12} /> : <Code2 size={12} />}
+      {copied ? 'Copied!' : 'Run in playground'}
     </button>
   )
 }
@@ -183,8 +186,13 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
   return (
     // not-prose escapes Tailwind Typography's prose styles completely
     <div className="not-prose my-4 rounded-xl overflow-hidden border border-gray-700">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1e293b', padding: '8px 16px' }}>
-        <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{language}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1e293b', padding: '8px 16px', gap: '8px' }}>
+        <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', flex: 1 }}>{language}</span>
+        <button
+          onClick={() => { navigator.clipboard.writeText(code); toast.success('Copied!') }}
+          style={{ fontSize: '11px', color: '#94a3b8', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Copy size={12} /> Copy
+        </button>
         {showPlayground && <PlaygroundButton code={code} language={language} />}
       </div>
       <pre style={{ margin: 0, padding: '16px', background: '#0f172a', overflowX: 'auto' }}>
