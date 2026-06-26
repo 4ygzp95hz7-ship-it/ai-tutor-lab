@@ -156,26 +156,41 @@ function PlaygroundButton({ code, language }: { code: string; language: string }
   )
 }
 
+// Extract plain text from React children (handles string and nested nodes)
+function extractText(children: React.ReactNode): string {
+  if (typeof children === 'string') return children
+  if (typeof children === 'number') return String(children)
+  if (Array.isArray(children)) return children.map(extractText).join('')
+  if (children && typeof children === 'object' && 'props' in (children as React.ReactElement)) {
+    const el = children as React.ReactElement<{ children?: React.ReactNode }>
+    return extractText(el.props.children)
+  }
+  return ''
+}
+
 // Custom code block that adds playground button
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
   const language = className?.replace('language-', '') ?? 'text'
-  const code = String(children ?? '').trim()
+  const code = extractText(children).trim()
 
   if (language === 'mermaid') {
     return <MermaidDiagram code={code} />
   }
 
-  const playgroundLangs = ['javascript', 'js', 'typescript', 'ts', 'python', 'py']
+  const playgroundLangs = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'sql']
   const showPlayground = playgroundLangs.includes(language) && code.length > 10
 
   return (
-    <div className="relative group my-4">
-      <div className="flex items-center justify-between bg-gray-800 px-4 py-2 rounded-t-lg">
-        <span className="text-xs text-gray-400 font-mono">{language}</span>
+    // not-prose escapes Tailwind Typography's prose styles completely
+    <div className="not-prose my-4 rounded-xl overflow-hidden border border-gray-700">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1e293b', padding: '8px 16px' }}>
+        <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{language}</span>
         {showPlayground && <PlaygroundButton code={code} language={language} />}
       </div>
-      <pre className="bg-gray-900 text-gray-100 rounded-b-lg px-4 py-3 overflow-x-auto text-sm leading-relaxed m-0">
-        <code>{code}</code>
+      <pre style={{ margin: 0, padding: '16px', background: '#0f172a', overflowX: 'auto' }}>
+        <code style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: '1.7', fontFamily: 'ui-monospace, SFMono-Regular, monospace', whiteSpace: 'pre' }}>
+          {code}
+        </code>
       </pre>
     </div>
   )
@@ -233,9 +248,7 @@ export function LessonEnhancedContent({ content, resources, subModuleTitle, topi
         prose-p:text-gray-700 prose-p:leading-relaxed
         prose-strong:text-gray-900
         prose-ul:text-gray-700 prose-li:my-1 prose-li:leading-relaxed
-        prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-        prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0
-        [&_pre]:!p-0 [&_pre]:!bg-transparent">
+        prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -247,7 +260,8 @@ export function LessonEnhancedContent({ content, resources, subModuleTitle, topi
               return <CodeBlock className={className}>{children}</CodeBlock>
             },
             pre({ children }) {
-              return <>{children}</>
+              // Let the code component handle the rendering — pre is just a passthrough
+              return <div className="not-prose">{children}</div>
             },
           }}
         >
