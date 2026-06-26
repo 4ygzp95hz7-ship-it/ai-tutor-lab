@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, Clock, CheckCircle, Lock, Loader2, MessageSquare, ChevronRight, BookOpen, Flame, ExternalLink, Brain, Mic, ChevronDown, XCircle, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { cn, parseJSON } from '@/lib/utils'
+import { LessonEnhancedContent } from '@/components/lesson/LessonEnhancedContent'
 import { ChatPanel } from '@/components/chat/ChatPanel'
 import toast from 'react-hot-toast'
 
@@ -438,28 +437,22 @@ export default function RoadmapPage() {
                 </div>
               )}
 
-              {/* Lesson body */}
+              {/* Lesson body — enhanced with videos, diagrams, live playground */}
               {loadingLesson ? (
                 <div className="flex flex-col items-center gap-4 py-16 text-gray-400">
                   <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   <div className="text-center">
                     <p className="text-sm text-blue-600 font-medium">Generating your lesson…</p>
-                    <p className="text-xs text-gray-400 mt-1">Claude is writing a focused lesson for this sub-module</p>
+                    <p className="text-xs text-gray-400 mt-1">Claude is writing a focused lesson with diagrams and examples</p>
                   </div>
                 </div>
               ) : activeSub?.content ? (
-                <div className="prose prose-gray max-w-none
-                  prose-headings:font-semibold prose-headings:text-gray-900 prose-headings:mt-6 prose-headings:mb-3
-                  prose-h2:text-lg prose-h3:text-base
-                  prose-p:text-gray-600 prose-p:leading-relaxed prose-p:mb-4
-                  prose-code:bg-gray-100 prose-code:text-blue-700 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
-                  prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl prose-pre:text-sm prose-pre:leading-relaxed
-                  prose-strong:text-gray-800 prose-strong:font-semibold
-                  prose-ul:text-gray-600 prose-ol:text-gray-600
-                  prose-li:mb-1 prose-li:leading-relaxed
-                  prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeSub.content}</ReactMarkdown>
-                </div>
+                <LessonEnhancedContent
+                  content={activeSub.content}
+                  resources={activeSub.resources}
+                  subModuleTitle={activeSub.title}
+                  topic={activeStage?.title}
+                />
               ) : (
                 <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
                   <BookOpen size={32} className="text-gray-200" />
@@ -467,12 +460,12 @@ export default function RoadmapPage() {
                 </div>
               )}
 
-              {/* Resources */}
-              {(activeSub?.resources?.length ?? 0) > 0 && (
+              {/* Non-video resources */}
+              {(activeSub?.resources?.filter((r: { type: string }) => r.type !== 'video').length ?? 0) > 0 && (
                 <div className="mt-8 pt-6 border-t border-gray-100">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resources</h4>
                   <div className="flex flex-wrap gap-2">
-                    {activeSub?.resources?.map((r, i) => (
+                    {activeSub?.resources?.filter((r: { type: string }) => r.type !== 'video').map((r, i) => (
                       <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
                         <ExternalLink size={10} />{r.title}

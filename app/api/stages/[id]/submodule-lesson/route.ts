@@ -64,9 +64,10 @@ Write a complete lesson covering exactly this sub-module. Include:
 1. **Introduction** — what is this and why it matters (2-3 sentences)
 2. **Core Concept** — clear explanation with a real-world analogy
 3. **Code Example** — practical code with brief explanation (use \`\`\`language blocks)
-4. **Key Takeaway** — 2-3 bullet points of what the student now knows
+4. **Visual Diagram** — add a Mermaid diagram using \`\`\`mermaid blocks where it genuinely helps (flowcharts for algorithms, mind maps for concepts, sequence diagrams for processes). Skip if not helpful.
+5. **Key Takeaway** — 2-3 bullet points of what the student now knows
 
-Keep it focused and concise — 300-500 words. Use markdown. Write as a friendly, knowledgeable tutor.`
+Keep it focused — 400-600 words total. Use markdown. Write as a friendly, knowledgeable tutor.`
 
   const message = await client.messages.create({
     model: SONNET,

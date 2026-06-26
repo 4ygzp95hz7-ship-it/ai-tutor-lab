@@ -40,13 +40,17 @@ Return ONLY this JSON array, no markdown:
     "description": "string (1 sentence, max 15 words)",
     "objectives": ["string", "string"],
     "estimatedHours": number,
-    "resources": [{"title": "string", "url": "https://...", "type": "docs"}]
+    "resources": [
+      {"title": "string", "url": "https://...", "type": "docs"},
+      {"title": "string — a real YouTube video title from 3Blue1Brown/freeCodeCamp/Traversy Media/MIT OCW/Fireship/CS Dojo", "url": "https://www.youtube.com/watch?v=VALID_VIDEO_ID", "type": "video"}
+    ]
   }
 ]
 
 Rules:
 - 3-4 sub-modules that logically break down the parent module
-- Each sub-module: 2 objectives, 1 resource, description under 15 words
+- Each sub-module: 2 objectives, 1 docs resource + 1 video resource
+- For the video: use ONLY real YouTube video IDs you are confident exist from these channels: 3Blue1Brown, freeCodeCamp, Traversy Media, MIT OpenCourseWare, Fireship, CS Dojo, Sentdex. If unsure, use freeCodeCamp's channel search URL: https://www.youtube.com/results?search_query=freeCodeCamp+${encodeURIComponent(stage.title)}
 - estimatedHours: 1-4 per sub-module
 - Return ONLY the JSON array, complete and valid`
 
