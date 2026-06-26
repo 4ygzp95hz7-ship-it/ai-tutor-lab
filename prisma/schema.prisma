@@ -101,6 +101,7 @@ model Stage {
   resources           String   @default("[]")
   content             String   @default("")
   completedSubModules String   @default("[]")
+  cheatSheet          String   @default("")
   estimatedHours      Int      @default(2)
   status         String   @default("not_started")
   orderIndex     Int

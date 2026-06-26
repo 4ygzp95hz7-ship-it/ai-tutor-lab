@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Clock, CheckCircle, Lock, Loader2, MessageSquare, ChevronRight, BookOpen, Flame, ExternalLink, Brain, Mic, ChevronDown, XCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Clock, CheckCircle, Lock, Loader2, MessageSquare, ChevronRight, BookOpen, Flame, ExternalLink, Brain, Mic, ChevronDown, XCircle, RefreshCw, FileText, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 import { cn, parseJSON } from '@/lib/utils'
 import { LessonEnhancedContent } from '@/components/lesson/LessonEnhancedContent'
@@ -63,6 +63,13 @@ export default function RoadmapPage() {
   const [recallScore, setRecallScore] = useState(0)
   const [recallPassed, setRecallPassed] = useState(false)
   const [showHint, setShowHint] = useState<number | null>(null)
+
+  // Interview questions state
+  const [interviewQs, setInterviewQs] = useState<{
+    question: string; type: string; difficulty: string; keyPoints: string[]
+  }[]>([])
+  const [loadingInterviewQs, setLoadingInterviewQs] = useState(false)
+  const [showInterviewQs, setShowInterviewQs] = useState(false)
 
   // Feynman mode state
   const [feynmanMode, setFeynmanMode] = useState(false)
@@ -145,8 +152,26 @@ export default function RoadmapPage() {
   async function selectSub(idx: number) {
     if (!activeStage) return
     setActiveSubIdx(idx)
+    setInterviewQs([])
+    setShowInterviewQs(false)
     const sub = activeStage.subModules?.[idx]
     if (sub) loadLesson(activeStage.id, idx, sub)
+  }
+
+  async function loadInterviewQs() {
+    if (!activeStage || loadingInterviewQs) return
+    if (interviewQs.length > 0) { setShowInterviewQs(true); return }
+    setLoadingInterviewQs(true)
+    setShowInterviewQs(true)
+    try {
+      const res = await fetch(`/api/stages/${activeStage.id}/submodule-interview`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subModuleIndex: activeSubIdx }),
+      })
+      const { questions } = await res.json()
+      setInterviewQs(questions ?? [])
+    } catch { toast.error('Failed to load questions') }
+    finally { setLoadingInterviewQs(false) }
   }
 
   async function loadConnections(stageId: string) {
@@ -409,17 +434,23 @@ export default function RoadmapPage() {
                   )}
                 </div>
 
-                {/* Meta + Ask AI */}
+                {/* Meta + Actions */}
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   {activeSub && (
                     <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full">
                       <Clock size={11} />{activeSub.estimatedHours}h
                     </div>
                   )}
-                  <button onClick={() => setChatOpen(true)}
-                    className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
-                    <MessageSquare size={11} /> Ask AI
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/cheatsheet/${activeStage.id}`} target="_blank"
+                      className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors">
+                      <FileText size={11} /> Cheat sheet
+                    </Link>
+                    <button onClick={() => setChatOpen(true)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+                      <MessageSquare size={11} /> Ask AI
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -457,6 +488,59 @@ export default function RoadmapPage() {
                 <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
                   <BookOpen size={32} className="text-gray-200" />
                   <p className="text-sm">Click a sub-module pill above to load its lesson</p>
+                </div>
+              )}
+
+              {/* Interview questions section */}
+              {activeSub?.content && (
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <button onClick={loadInterviewQs}
+                    className="flex items-center gap-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors w-full justify-center">
+                    <HelpCircle size={15} />
+                    {showInterviewQs ? 'Hide interview questions' : 'What do interviewers ask about this?'}
+                  </button>
+
+                  {showInterviewQs && (
+                    <div className="mt-4">
+                      {loadingInterviewQs ? (
+                        <div className="flex items-center gap-2 text-sm text-purple-600 py-3 justify-center">
+                          <Loader2 size={14} className="animate-spin" />Generating interview questions…
+                        </div>
+                      ) : interviewQs.length > 0 ? (
+                        <div className="space-y-3">
+                          {interviewQs.map((q, i) => (
+                            <div key={i} className="border border-purple-100 rounded-xl p-4 bg-purple-50/30">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                  q.difficulty === 'junior' ? 'bg-green-100 text-green-700' :
+                                  q.difficulty === 'mid' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-red-100 text-red-700'}`}>
+                                  {q.difficulty}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  q.type === 'conceptual' ? 'bg-blue-100 text-blue-700' :
+                                  q.type === 'practical' ? 'bg-green-100 text-green-700' :
+                                  'bg-orange-100 text-orange-700'}`}>
+                                  {q.type}
+                                </span>
+                              </div>
+                              <p className="text-sm font-semibold text-gray-900 mb-2">{q.question}</p>
+                              <div>
+                                <p className="text-xs text-gray-500 font-medium mb-1.5">Key points a great answer covers:</p>
+                                <ul className="space-y-1">
+                                  {q.keyPoints.map((kp, ki) => (
+                                    <li key={ki} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                      <span className="text-purple-400 mt-0.5 flex-shrink-0">•</span>{kp}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               )}
 
