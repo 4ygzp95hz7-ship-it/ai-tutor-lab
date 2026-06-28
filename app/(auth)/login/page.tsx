@@ -45,7 +45,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
 
-      {/* Left panel — full branding */}
+      {/* Left panel — branding (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-[55%] flex-col bg-blue-600 relative overflow-hidden">
         {/* Background pattern */}
         <div className="absolute inset-0" style={{
@@ -115,14 +115,15 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — login */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white px-8 py-12">
-        {/* Mobile logo */}
-        <div className="flex lg:hidden items-center gap-2 mb-10">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <BookOpen size={15} className="text-white" />
+      {/* Right panel — login (full screen on mobile) */}
+      <div className="flex-1 flex flex-col items-center justify-center bg-white px-6 py-10 md:px-8 md:py-12">
+        {/* Mobile logo + tagline */}
+        <div className="flex lg:hidden flex-col items-center gap-3 mb-8">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <BookOpen size={28} className="text-white" />
           </div>
-          <span className="font-semibold text-gray-900">AI Tutor Lab</span>
+          <span className="font-bold text-gray-900 text-xl">AI Tutor Lab</span>
+          <p className="text-sm text-gray-400 text-center">Your personal AI tutor for any topic</p>
         </div>
 
         <div className="w-full max-w-sm">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Clock, CheckCircle, ChevronRight, Sparkles, Play, Pause, Award } from 'lucide-react'
+import { Plus, Clock, CheckCircle, ChevronRight, Sparkles, Play, Pause, Award, ArrowLeft } from 'lucide-react'
 
 interface Stage { id: string; status: string; title: string; orderIndex: number }
 interface Roadmap {
@@ -75,8 +75,8 @@ export default function RoadmapListPage() {
   return (
     <div className="flex h-full overflow-hidden bg-gray-50">
 
-      {/* LEFT: list panel */}
-      <div className="flex flex-col bg-white border-r border-gray-100 overflow-hidden" style={{ width: '420px', minWidth: '420px' }}>
+      {/* LEFT: list panel — full width on mobile, 420px on desktop */}
+      <div className={`flex flex-col bg-white border-r border-gray-100 overflow-hidden ${selected ? 'hidden md:flex' : 'flex'} w-full md:w-[420px] md:min-w-[420px]`}>
 
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex-shrink-0">
@@ -153,8 +153,8 @@ export default function RoadmapListPage() {
         </div>
       </div>
 
-      {/* RIGHT: preview pane — full height, no artificial width cap */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-white">
+      {/* RIGHT: preview pane — hidden on mobile unless roadmap selected */}
+      <div className={`flex-1 flex-col overflow-hidden bg-white ${selected ? 'flex' : 'hidden md:flex'}`}>
         {!selected ? (
           <div className="flex h-full items-center justify-center text-gray-400">
             <div className="text-center"><Sparkles size={32} className="mx-auto mb-3 text-gray-200" /><p className="text-sm">Select a roadmap to preview</p></div>
@@ -169,7 +169,11 @@ export default function RoadmapListPage() {
           return (
             <>
               {/* Fixed top section */}
-              <div className="flex-shrink-0 border-b border-gray-100 bg-white p-6">
+              <div className="flex-shrink-0 border-b border-gray-100 bg-white p-4 md:p-6">
+                {/* Mobile back */}
+                <button className="md:hidden flex items-center gap-2 text-sm text-gray-500 mb-4 hover:text-gray-700 transition-colors" onClick={() => setSelected(null)}>
+                  <ArrowLeft size={15} /> All roadmaps
+                </button>
                 {/* Header row */}
                 <div className="flex items-start gap-4 mb-5">
                   <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-4xl flex-shrink-0">

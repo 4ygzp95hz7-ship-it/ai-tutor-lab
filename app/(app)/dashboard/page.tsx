@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="max-w-5xl mx-auto px-6 py-6">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -101,7 +101,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI cards */}
-        <div className="grid grid-cols-4 gap-4 mb-7">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-7">
           {kpis.map((k, i) => (
             <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-fade-up opacity-0" style={{ animationDelay: `${i * 80}ms` }}>
               <div className={`w-8 h-8 ${k.iconBg} rounded-lg flex items-center justify-center mb-3`}>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-4 mb-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-7">
             {[1,2,3,4].map(i => <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />)}
           </div>
         ) : roadmaps.length === 0 ? (
@@ -136,7 +136,7 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 mb-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-7">
             {roadmaps.map((rm, idx) => {
               const done = rm.stages?.filter(s => s.status === 'completed').length ?? 0
               const total = rm.stages?.length ?? 0

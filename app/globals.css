@@ -21,6 +21,14 @@ body {
 }
 
 /* Fix: Tailwind v4 resets form element color — make all inputs/selects/textareas explicitly dark */
+/* PWA safe areas for iPhone notch/home indicator */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+/* Smooth scrolling for mobile */
+* { -webkit-tap-highlight-color: transparent; }
+body { -webkit-overflow-scrolling: touch; }
+
 input,
 textarea,
 select,
