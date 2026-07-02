@@ -484,7 +484,7 @@ export default function RoadmapPage() {
 
                   {/* Sub-module pills */}
                   {totalSubs > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 mb-4">
                       {activeStage.subModules.map((sub, si) => {
                         const done = completedSubs.includes(si)
                         const active = si === activeSubIdx
@@ -501,6 +501,17 @@ export default function RoadmapPage() {
                       })}
                     </div>
                   )}
+
+                  {/* Module video — module-level, doesn't change as you switch sub-modules */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Module video overview</p>
+                    <AiVideoPlayer
+                      status={activeStage.videoStatus}
+                      videoUrl={activeStage.videoUrl}
+                      onGenerate={() => generateModuleVideo(activeStage.id)}
+                      label="Generate module video"
+                    />
+                  </div>
                 </div>
 
                 {/* Meta + Actions */}
@@ -526,29 +537,18 @@ export default function RoadmapPage() {
 
             {/* Lesson content */}
             <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6">
-              {/* Video overview — module + this sub-module, side by side so both are visible up front */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-gray-100">
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Module video overview</p>
+              {/* Sub-module video — tied to whichever sub-module is currently active */}
+              {activeSub && (
+                <div className="mb-6 pb-6 border-b border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">This sub-module&apos;s video</p>
                   <AiVideoPlayer
-                    status={activeStage.videoStatus}
-                    videoUrl={activeStage.videoUrl}
-                    onGenerate={() => generateModuleVideo(activeStage.id)}
-                    label="Generate module video"
+                    status={activeSub.videoStatus}
+                    videoUrl={activeSub.videoUrl}
+                    onGenerate={() => generateSubModuleVideo(activeStage.id, activeSubIdx)}
+                    label="Generate video summary"
                   />
                 </div>
-                {activeSub && (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">This sub-module&apos;s video</p>
-                    <AiVideoPlayer
-                      status={activeSub.videoStatus}
-                      videoUrl={activeSub.videoUrl}
-                      onGenerate={() => generateSubModuleVideo(activeStage.id, activeSubIdx)}
-                      label="Generate video summary"
-                    />
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Objectives strip */}
               {(activeSub?.objectives?.length ?? 0) > 0 && (
