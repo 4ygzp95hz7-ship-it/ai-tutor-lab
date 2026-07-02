@@ -76,6 +76,23 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
   }).catch(err => console.error('[email] password reset failed:', err))
 }
 
+export async function sendReviewDueEmail(email: string, name: string, dueCount: number, sampleTitles: string[]) {
+  const firstName = name?.split(' ')[0] ?? 'there'
+  const list = sampleTitles.filter(Boolean).slice(0, 3)
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: `${dueCount} sub-module${dueCount === 1 ? '' : 's'} due for review 🧠`,
+    html: baseTemplate(`
+      <h1 style="margin:0 0 8px;font-size:22px;color:#0f172a">Time for a quick review, ${firstName}</h1>
+      <p style="color:#475569;line-height:1.6;margin:0 0 16px">Spaced repetition works because you review right when you're about to forget. You have <strong style="color:#0f172a">${dueCount} sub-module${dueCount === 1 ? '' : 's'}</strong> due right now.</p>
+      ${list.length > 0 ? `<ul style="color:#475569;font-size:13px;line-height:1.8;margin:0 0 24px;padding-left:20px">${list.map(t => `<li>${t}</li>`).join('')}</ul>` : ''}
+      <p style="color:#475569;font-size:14px;margin:0 0 24px">Each review takes a couple minutes and locks the concept into long-term memory.</p>
+      <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1e40af;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Review Now →</a>
+    `),
+  }).catch(err => console.error('[email] review due failed:', err))
+}
+
 export async function sendModuleCompleteEmail(email: string, name: string, moduleName: string, nextModule?: string) {
   const firstName = name?.split(' ')[0] ?? 'there'
   await resend.emails.send({

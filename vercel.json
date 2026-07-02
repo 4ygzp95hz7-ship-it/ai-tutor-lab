@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/streak",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/spaced-repetition",
+      "schedule": "30 9 * * *"
     }
   ]
 }
