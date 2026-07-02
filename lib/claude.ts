@@ -264,7 +264,7 @@ export async function generateVideoScript(
     max_tokens: 600,
     messages: [{
       role: 'user',
-      content: `Write a spoken narration script for a short (60-90 second) educational video explaining "${title}" as part of a course on "${topic}".
+      content: `Write a spoken narration script for a short (~45-60 second) educational video explaining "${title}" as part of a course on "${topic}".
 
 Context: ${description}
 ${objectives.length > 0 ? `Key points to cover:\n${objectives.map(o => `- ${o}`).join('\n')}` : ''}
@@ -272,14 +272,16 @@ ${objectives.length > 0 ? `Key points to cover:\n${objectives.map(o => `- ${o}`)
 Rules:
 - Plain spoken prose only — no markdown, no headers, no bullet points, no code, no stage directions
 - Sound like a friendly, knowledgeable tutor talking directly to camera
-- 130-170 words total
+- HARD LIMIT: under 850 characters total (including spaces) — this is a strict technical constraint, not a suggestion. Aim for ~100-120 words.
 - Start with a hook, explain the core idea with one concrete example or analogy, end with what the viewer now understands
 - Return ONLY the narration text, nothing else`,
     }],
   })
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  return text.trim()
+  const trimmed = text.trim()
+  // Hard safety net — JoggAI rejects scripts over 920 chars regardless of what we asked for
+  return trimmed.length > 900 ? trimmed.slice(0, 900).replace(/\s+\S*$/, '') + '.' : trimmed
 }
 
 // ─── Interview generation + evaluation ───────────────────────────────────────
