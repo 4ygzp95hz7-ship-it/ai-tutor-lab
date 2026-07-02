@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRoadmap } from '@/components/roadmap/RoadmapContext'
+import { CopyLinkButton } from '@/components/roadmap/CopyLinkButton'
 import { VideoTextPane } from '@/components/lesson/VideoTextPane'
 import { LessonEnhancedContent } from '@/components/lesson/LessonEnhancedContent'
 import toast from 'react-hot-toast'
@@ -202,6 +203,7 @@ export default function SubModulePage() {
               <Clock size={11} />{sub.estimatedHours}h
             </div>
             <div className="flex items-center gap-2">
+              <CopyLinkButton />
               <Link href={`/cheatsheet/${stage.id}`} target="_blank"
                 className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors">
                 <FileText size={11} /> Cheat sheet
