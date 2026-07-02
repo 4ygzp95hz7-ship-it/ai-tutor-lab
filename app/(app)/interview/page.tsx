@@ -217,10 +217,10 @@ export default function InterviewPrepPage() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Number of questions: <span className="text-blue-600 font-bold">{count}</span>
                 </label>
-                <input type="range" min={5} max={20} step={5} value={count} onChange={e => setCount(Number(e.target.value))}
+                <input type="range" min={5} max={30} step={5} value={count} onChange={e => setCount(Number(e.target.value))}
                   className="w-full" />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>5 (quick)</span><span>10 (standard)</span><span>15</span><span>20 (thorough)</span>
+                  <span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span>
                 </div>
               </div>
 

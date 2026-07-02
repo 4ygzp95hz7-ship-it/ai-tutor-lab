@@ -302,7 +302,7 @@ export async function generateInterviewQuestions(
 
   const message = await client.messages.create({
     model: HAIKU,
-    max_tokens: 2048,
+    max_tokens: Math.min(8192, 300 + count * 150),
     messages: [{
       role: 'user',
       content: `Generate ${count} interview questions for "${topic}" at ${difficulty} difficulty.
