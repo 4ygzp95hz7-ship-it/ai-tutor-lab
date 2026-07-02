@@ -11,8 +11,9 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // API routes — allow auth routes, protect the rest
+  // API routes — allow auth + cron routes (cron uses its own CRON_SECRET check), protect the rest
   if (pathname.startsWith('/api/auth')) return NextResponse.next()
+  if (pathname.startsWith('/api/cron/')) return NextResponse.next()
   if (pathname.startsWith('/api/') && !session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
