@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, CheckCircle, Lock, Loader2, MessageSquare, ChevronRig
 import Link from 'next/link'
 import { cn, parseJSON } from '@/lib/utils'
 import { LessonEnhancedContent } from '@/components/lesson/LessonEnhancedContent'
+import { AiVideoPlayer } from '@/components/lesson/AiVideoPlayer'
 import { ChatPanel } from '@/components/chat/ChatPanel'
 import toast from 'react-hot-toast'
 
@@ -16,6 +17,8 @@ interface SubModule {
   estimatedHours: number
   resources: { title: string; url: string; type: string }[]
   content?: string
+  videoStatus?: string
+  videoUrl?: string
 }
 
 interface Stage {
@@ -29,6 +32,8 @@ interface Stage {
   estimatedHours: number
   status: string
   orderIndex: number
+  videoStatus?: string
+  videoUrl?: string
 }
 
 interface Roadmap {
@@ -117,6 +122,55 @@ export default function RoadmapPage() {
       }
     } catch {}
     finally { setLoadingLesson(false) }
+  }, [])
+
+  const generateModuleVideo = useCallback(async (stageId: string) => {
+    const poll = async (): Promise<{ status: string; videoUrl?: string }> => {
+      const res = await fetch(`/api/stages/${stageId}/video`, { method: 'POST' })
+      return res.json()
+    }
+    try {
+      let result = await poll()
+      const apply = (r: { status: string; videoUrl?: string }) => {
+        setRoadmap(prev => prev ? {
+          ...prev, stages: prev.stages.map(s => s.id === stageId ? { ...s, videoStatus: r.status, videoUrl: r.videoUrl ?? s.videoUrl } : s)
+        } : prev)
+        setActiveStage(prev => prev?.id === stageId ? { ...prev, videoStatus: r.status, videoUrl: r.videoUrl ?? prev.videoUrl } : prev)
+      }
+      apply(result)
+      while (result.status === 'pending' || result.status === 'processing') {
+        await new Promise(r => setTimeout(r, 5000))
+        result = await poll()
+        apply(result)
+      }
+    } catch { toast.error('Video generation failed') }
+  }, [])
+
+  const generateSubModuleVideo = useCallback(async (stageId: string, subIdx: number) => {
+    const poll = async (): Promise<{ status: string; videoUrl?: string }> => {
+      const res = await fetch(`/api/stages/${stageId}/submodule-video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index: subIdx }),
+      })
+      return res.json()
+    }
+    try {
+      let result = await poll()
+      const apply = (r: { status: string; videoUrl?: string }) => {
+        const updateSub = (sm: SubModule, i: number) => i === subIdx ? { ...sm, videoStatus: r.status, videoUrl: r.videoUrl ?? sm.videoUrl } : sm
+        setRoadmap(prev => prev ? {
+          ...prev, stages: prev.stages.map(s => s.id === stageId ? { ...s, subModules: s.subModules.map(updateSub) } : s)
+        } : prev)
+        setActiveStage(prev => prev?.id === stageId ? { ...prev, subModules: prev.subModules.map(updateSub) } : prev)
+      }
+      apply(result)
+      while (result.status === 'pending' || result.status === 'processing') {
+        await new Promise(r => setTimeout(r, 5000))
+        result = await poll()
+        apply(result)
+      }
+    } catch { toast.error('Video generation failed') }
   }, [])
 
   useEffect(() => {
@@ -472,6 +526,17 @@ export default function RoadmapPage() {
 
             {/* Lesson content */}
             <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6">
+              {/* Module video overview */}
+              <div className="mb-6 pb-6 border-b border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Module video overview</p>
+                <AiVideoPlayer
+                  status={activeStage.videoStatus}
+                  videoUrl={activeStage.videoUrl}
+                  onGenerate={() => generateModuleVideo(activeStage.id)}
+                  label="Generate module video"
+                />
+              </div>
+
               {/* Objectives strip */}
               {(activeSub?.objectives?.length ?? 0) > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6 pb-6 border-b border-gray-100">
@@ -503,6 +568,19 @@ export default function RoadmapPage() {
                 <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
                   <BookOpen size={32} className="text-gray-200" />
                   <p className="text-sm">Click a sub-module pill above to load its lesson</p>
+                </div>
+              )}
+
+              {/* Sub-module video summary */}
+              {activeSub?.content && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Sub-module video summary</p>
+                  <AiVideoPlayer
+                    status={activeSub.videoStatus}
+                    videoUrl={activeSub.videoUrl}
+                    onGenerate={() => generateSubModuleVideo(activeStage.id, activeSubIdx)}
+                    label="Generate video summary"
+                  />
                 </div>
               )}
 

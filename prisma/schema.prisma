@@ -102,6 +102,9 @@ model Stage {
   content             String   @default("")
   completedSubModules String   @default("[]")
   cheatSheet          String   @default("")
+  videoId             String   @default("")
+  videoStatus         String   @default("")
+  videoUrl            String   @default("")
   estimatedHours      Int      @default(2)
   status         String   @default("not_started")
   orderIndex     Int

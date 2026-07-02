@@ -249,6 +249,39 @@ Return JSON only: { "score": number (0-100), "feedback": "string (2-3 constructi
   }
 }
 
+// ─── Video narration script ─────────────────────────────────────────────────
+
+export async function generateVideoScript(
+  topic: string,
+  title: string,
+  description: string,
+  objectives: string[]
+): Promise<string> {
+  const client = getClaudeClient()
+
+  const message = await client.messages.create({
+    model: SONNET,
+    max_tokens: 600,
+    messages: [{
+      role: 'user',
+      content: `Write a spoken narration script for a short (60-90 second) educational video explaining "${title}" as part of a course on "${topic}".
+
+Context: ${description}
+${objectives.length > 0 ? `Key points to cover:\n${objectives.map(o => `- ${o}`).join('\n')}` : ''}
+
+Rules:
+- Plain spoken prose only — no markdown, no headers, no bullet points, no code, no stage directions
+- Sound like a friendly, knowledgeable tutor talking directly to camera
+- 130-170 words total
+- Start with a hook, explain the core idea with one concrete example or analogy, end with what the viewer now understands
+- Return ONLY the narration text, nothing else`,
+    }],
+  })
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  return text.trim()
+}
+
 // ─── Interview generation + evaluation ───────────────────────────────────────
 
 export interface InterviewQuestion {
